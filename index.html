@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QCM Teacher</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#2266ff" />
+<link rel="apple-touch-icon" href="icons/icon-512.png" />
+<link rel="icon" type="image/png" href="icons/icon-192.png" />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif;}
+body{background:linear-gradient(135deg,#e9efff,#dbe4ff);color:#222;direction:rtl;overflow-x:hidden;}
+body.dark{background:#0f182b;color:#fff;}
+.hidden{display:none!important;}
+.glassy{background:rgba(255,255,255,.22);border-radius:16px;border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(15px);box-shadow:0 8px 18px rgba(0,0,0,.1);}
+body.dark .glassy{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);}
+.splash{position:fixed;inset:0;background:linear-gradient(135deg,#2266ff,#4da3ff);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5000;color:#fff;text-align:center;}
+.splash-avatar{width:150px;margin-bottom:20px;border-radius:50%;border:3px solid #fff;}
+.splash-title{font-size:24px;margin-bottom:8px;}
+.splash-loading{opacity:.8;}
+#appContainer{display:flex;width:100%;min-height:100vh;}
+.sidebar{width:260px;padding:20px;display:flex;flex-direction:column;}
+.sidebar-header{text-align:center;margin-bottom:20px;}
+.sidebar-avatar{width:90px;margin-bottom:10px;border-radius:50%;border:3px solid #fff;}
+.menu{list-style:none;}
+.menu-item{padding:12px;margin:5px 0;cursor:pointer;border-radius:10px;transition:.2s;font-weight:600;}
+.menu-item:hover{background:rgba(255,255,255,.32);}
+.menu-item.active{background:#2266ff;color:#fff;}
+.install-btn{margin-top:auto;padding:12px;font-size:16px;background:#2266ff;color:#fff;border:none;border-radius:12px;cursor:pointer;}
+.xp-bar{height:10px;background:rgba(255,255,255,.4);border-radius:8px;overflow:hidden;margin-top:5px;}
+.xp-progress{height:100%;width:0%;background:linear-gradient(90deg,#00d2ff,#2266ff);transition:.4s;}
+.main{flex:1;padding:25px;}
+.screen{display:none;}
+.active-screen{display:block;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:15px;margin-bottom:30px;}
+.stat-card{padding:20px;text-align:center;}
+.chart-container{padding:20px;margin-bottom:25px;}
+.ai-box{padding:20px;}
+.main-btn{background:#2266ff;color:#fff;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px;margin-top:10px;}
+.nav-btn{padding:8px 14px;border-radius:8px;background:#eee;border:none;cursor:pointer;font-size:13px;}
+.setup-grid{display:grid;grid-template-columns:140px 1fr;gap:10px;padding:20px;margin-bottom:20px;}
+.setup-grid input,.setup-grid select{padding:7px;border-radius:8px;border:1px solid #bbb;}
+.quiz-box{padding:20px;margin-bottom:25px;}
+.question-text{font-weight:600;margin-bottom:12px;}
+.options label{display:block;margin-bottom:6px;cursor:pointer;}
+.instant-explanation{margin-top:15px;background:rgba(255,255,255,.4);padding:12px;border-radius:10px;}
+.quiz-controls{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;}
+.navigator{display:grid;grid-template-columns:repeat(auto-fit,35px);gap:5px;margin-top:15px;}
+.navigator button{padding:6px;background:rgba(34,102,255,.15);border:none;border-radius:6px;cursor:pointer;font-size:12px;}
+.navigator button.answered{background:#2266ff;color:#fff;}
+.navigator button.current{border:2px solid #000;}
+.weakness-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;}
+.weak-item{padding:16px;}
+.badges-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;}
+.badge-item{text-align:center;padding:15px;}
+.badge-item img{width:60px;margin-bottom:8px;}
+.history-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;}
+.history-item{padding:16px;}
+.settings-grid{padding:20px;display:grid;gap:10px;}
+.settings-grid input{padding:8px;border-radius:8px;border:1px solid #bbb;}
+.danger-btn{background:#cc0000;padding:10px;border-radius:10px;color:#fff;border:none;cursor:pointer;}
+.level-up-popup{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#2266ff;color:#fff;padding:15px 25px;border-radius:18px;z-index:6000;box-shadow:0 8px 16px rgba(0,0,0,.25);text-align:center;}
+.badge-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:6000;text-align:center;padding:15px 20px;}
+.badge-popup img{width:60px;margin-bottom:6px;}
+body.dark .main-btn{background:#5590ff;}
+body.dark .nav-btn{background:#1e2a49;color:#fff;}
+body.dark .stat-card,body.dark .history-item,body.dark .weak-item{background:rgba(255,255,255,.08);}
+@media(max-width:900px){
+  #appContainer{flex-direction:column;}
+  .sidebar{width:100%;flex-direction:row;align-items:center;overflow-x:auto;}
+  .sidebar-header{display:none;}
+}
+</style>
+</head>
+<body>
+<div id="splashScreen" class="splash">
+  <img src="icons/icon-192.png" class="splash-avatar" alt="QCM Teacher" />
+  <h1 class="splash-title">QCM Teacher</h1>
+  <p class="splash-loading">جاري التحميل...</p>
+</div>
+
+<div id="appContainer" class="app hidden">
+  <aside class="sidebar glassy">
+    <div class="sidebar-header">
+      <img src="icons/icon-192.png" class="sidebar-avatar" alt="Avatar" />
+      <h3 id="userName">الأستاذ: أستاذ(ة)</h3>
+      <p id="userLevel">المستوى: 1</p>
+      <div class="xp-bar"><div class="xp-progress"></div></div>
+    </div>
+    <ul class="menu">
+      <li class="menu-item active" data-target="dashboardScreen">🏠 لوحة التحكم</li>
+      <li class="menu-item" data-target="quizScreen">📝 جلسة جديدة</li>
+      <li class="menu-item" data-target="weaknessScreen">⚠️ نقاط الضعف</li>
+      <li class="menu-item" data-target="badgesScreen">🏆 الميداليات</li>
+      <li class="menu-item" data-target="historyScreen">📚 السجل</li>
+      <li class="menu-item" data-target="settingsScreen">⚙️ الإعدادات</li>
+    </ul>
+    <button id="installBtn" class="install-btn hidden">⬇️ تثبيت التطبيق</button>
+  </aside>
+
+  <main class="main">
+    <section id="dashboardScreen" class="screen active-screen">
+      <h2>لوحة التحكم</h2>
+      <div class="stats-grid">
+        <div class="stat-card glassy">
+          <h3>أعلى نقطة</h3><p id="bestScore">0/20</p>
+        </div>
+        <div class="stat-card glassy">
+          <h3>عدد الجلسات</h3><p id="sessionCount">0</p>
+        </div>
+        <div class="stat-card glassy">
+          <h3>عدد الأسئلة المنجزة</h3><p id="totalQuestions">0</p>
+        </div>
+        <div class="stat-card glassy">
+          <h3>معدل الإجابات الصحيحة</h3><p id="correctRate">0%</p>
+        </div>
+      </div>
+      <div class="chart-container glassy">
+        <canvas id="progressChart"></canvas>
+      </div>
+      <div class="ai-box glassy">
+        <h3>توصيات التدريب المخصصة</h3>
+        <p id="aiRecommendation">جاري التحليل...</p>
+        <button id="startRecommendedSession" class="main-btn">بدء الجلسة المقترحة</button>
+      </div>
+    </section>
+
+    <section id="quizScreen" class="screen">
+      <h2>إعداد الجلسة</h2>
+      <button class="main-btn" onclick="openCSVPicker()">📂 تحميل بنك الأسئلة (CSV)</button>
+      <div class="setup-grid glassy" style="margin-top:15px;">
+        <label>المجال:</label><select id="domainSelect"></select>
+        <label>المجال الفرعي:</label><select id="subDomainSelect"></select>
+        <label>مستوى الصعوبة:</label>
+        <select id="difficultySelect">
+          <option value="all">كل المستويات</option>
+          <option value="سهل">سهل</option>
+          <option value="متوسط">متوسط</option>
+          <option value="صعب">صعب</option>
+        </select>
+        <label>عدد الأسئلة:</label><input type="number" id="questionCount" value="10" min="1" />
+        <label>المدة بالدقائق:</label><input type="number" id="sessionMinutes" value="10" min="1" />
+        <label></label><button id="startSessionBtn" class="main-btn">بدء الجلسة</button>
+      </div>
+      <div id="activeQuizBox" class="quiz-box glassy hidden">
+        <h3 id="questionHeader"></h3>
+        <div id="questionContent"></div>
+        <div id="instantExplanation" class="instant-explanation hidden"></div>
+        <div class="quiz-controls">
+          <button id="prevBtn" class="nav-btn">السابق</button>
+          <button id="nextBtn" class="nav-btn">التالي</button>
+          <button id="checkBtn" class="nav-btn">تصحيح</button>
+          <button id="finishBtn" class="main-btn">إنهاء</button>
+        </div>
+        <div id="questionNavigator" class="navigator"></div>
+      </div>
+    </section>
+
+    <section id="weaknessScreen" class="screen">
+      <h2>نقاط الضعف</h2>
+      <div id="weaknessList" class="weakness-grid"></div>
+      <button id="trainWeaknessBtn" class="main-btn" style="margin-top:15px;">جلسة تدريب على نقاط الضعف</button>
+    </section>
+
+    <section id="badgesScreen" class="screen">
+      <h2>الميداليات</h2>
+      <div id="badgeContainer" class="badges-grid"></div>
+    </section>
+
+    <section id="historyScreen" class="screen">
+      <h2>السجل</h2>
+      <div id="historyList" class="history-grid"></div>
+    </section>
+
+    <section id="settingsScreen" class="screen">
+      <h2>الإعدادات</h2>
+      <div class="settings-grid glassy">
+        <label>اسم المستخدم:</label>
+        <input type="text" id="usernameInput" placeholder="اسمك كما سيظهر في التطبيق" />
+        <label>الوضع الليلي:</label>
+        <button id="toggleTheme" class="nav-btn">تبديل</button>
+        <label>حذف كل البيانات:</label>
+        <button id="resetAll" class="danger-btn">حذف</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// Splash
+window.addEventListener('load',()=>{setTimeout(()=>{document.getElementById('splashScreen').classList.add('hidden');document.getElementById('appContainer').classList.remove('hidden');},800);});
+
+// Navigation
+const menuItems=document.querySelectorAll('.menu-item');
+const screens=document.querySelectorAll('.screen');
+menuItems.forEach(it=>{it.addEventListener('click',()=>{menuItems.forEach(i=>i.classList.remove('active'));it.classList.add('active');const t=it.dataset.target;screens.forEach(s=>s.classList.remove('active-screen'));document.getElementById(t).classList.add('active-screen');});});
+
+// Theme
+const savedTheme=localStorage.getItem('qcmTheme');
+if(savedTheme==='dark')document.body.classList.add('dark');
+document.getElementById('toggleTheme').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('qcmTheme',document.body.classList.contains('dark')?'dark':'light');});
+
+// CSV loading
+let questionsBank=[];
+const csvInput=document.createElement('input');
+csvInput.type='file';csvInput.accept='.csv';csvInput.style.display='none';
+document.body.appendChild(csvInput);
+csvInput.addEventListener('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=e=>loadCSV(e.target.result);r.readAsText(f);});
+function openCSVPicker(){csvInput.click();}
+function loadCSV(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+  const headers=lines[0].split(',').map(h=>h.trim());
+  questionsBank=lines.slice(1).map(line=>{
+    const parts=[];let cur='';let inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;continue;}
+      if(ch===','&&!inQ){parts.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    parts.push(cur.trim());
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=parts[i]||'');
+    return obj;
+  });
+  alert('✔ تم تحميل بنك الأسئلة بنجاح');
+  fillDomains();
+}
+
+// Domain/SubDomain
+const domainSelect=document.getElementById('domainSelect');
+const subDomainSelect=document.getElementById('subDomainSelect');
+function fillDomains(){
+  const domains=[...new Set(questionsBank.map(q=>q.Domain))].filter(Boolean);
+  domainSelect.innerHTML='';
+  domains.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;domainSelect.appendChild(o);});
+  fillSubDomains();
+}
+function fillSubDomains(){
+  const d=domainSelect.value;
+  const subs=[...new Set(questionsBank.filter(q=>q.Domain===d).map(q=>q.SubDomain||q.Sub))].filter(Boolean);
+  subDomainSelect.innerHTML='';
+  subs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;subDomainSelect.appendChild(o);});
+}
+domainSelect.addEventListener('change',fillSubDomains);
+
+// Quiz core
+let currentQuizQuestions=[],userAnswers=[],currentIndex=0,timerInterval=null,remainingSeconds=0;
+const difficultySelect=document.getElementById('difficultySelect');
+document.getElementById('startSessionBtn').addEventListener('click',()=>{
+  if(!questionsBank.length){alert('يرجى تحميل ملف الأسئلة CSV أولاً.');return;}
+  const dom=domainSelect.value,sub=subDomainSelect.value,diff=difficultySelect.value;
+  const count=Number(document.getElementById('questionCount').value)||10;
+  const mins=Number(document.getElementById('sessionMinutes').value)||10;
+  let pool=questionsBank.filter(q=>q.Domain===dom&&(q.SubDomain===sub||q.Sub===sub));
+  if(diff!=='all') pool=pool.filter(q=> (q.Difficulty||'').trim()===diff);
+  if(pool.length<count){alert('عدد الأسئلة المتاحة أقل من العدد المطلوب.');return;}
+  currentQuizQuestions=shuffle(pool).slice(0,count);
+  userAnswers=new Array(currentQuizQuestions.length).fill(null);
+  currentIndex=0;
+  document.getElementById('activeQuizBox').classList.remove('hidden');
+  renderQuestion();renderNavigator();
+  startTimer(mins*60);
+});
+
+function renderQuestion(){
+  const q=currentQuizQuestions[currentIndex];
+  document.getElementById('questionHeader').textContent=`السؤال ${currentIndex+1} من ${currentQuizQuestions.length}`;
+  const html=`
+    <p class="question-text">${q.Question}</p>
+    <div class="options">
+      <label><input type="radio" name="q" value="A"> ${q.A}</label>
+      <label><input type="radio" name="q" value="B"> ${q.B}</label>
+      <label><input type="radio" name="q" value="C"> ${q.C}</label>
+      <label><input type="radio" name="q" value="D"> ${q.D}</label>
+    </div>`;
+  document.getElementById('questionContent').innerHTML=html;
+  document.getElementById('instantExplanation').classList.add('hidden');
+  if(userAnswers[currentIndex]){
+    const inp=document.querySelector(`input[name="q"][value="${userAnswers[currentIndex]}"]`);
+    if(inp) inp.checked=true;
+  }
+  updateNavigatorHighlight();
+}
+
+document.getElementById('questionContent').addEventListener('change',e=>{
+  if(e.target.name==='q'){userAnswers[currentIndex]=e.target.value;updateNavigator();}
+});
+document.getElementById('nextBtn').addEventListener('click',()=>{
+  if(currentIndex<currentQuizQuestions.length-1){currentIndex++;renderQuestion();}
+});
+document.getElementById('prevBtn').addEventListener('click',()=>{
+  if(currentIndex>0){currentIndex--;renderQuestion();}
+});
+
+function renderNavigator(){
+  const nav=document.getElementById('questionNavigator');
+  nav.innerHTML='';
+  currentQuizQuestions.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.textContent=i+1;
+    if(userAnswers[i]) b.classList.add('answered');
+    b.addEventListener('click',()=>{currentIndex=i;renderQuestion();});
+    nav.appendChild(b);
+  });
+  updateNavigatorHighlight();
+}
+function updateNavigator(){
+  const nav=document.getElementById('questionNavigator').children;
+  for(let i=0;i<nav.length;i++){
+    nav[i].classList.toggle('answered',!!userAnswers[i]);
+  }
+}
+function updateNavigatorHighlight(){
+  const nav=document.getElementById('questionNavigator').children;
+  for(let i=0;i<nav.length;i++){
+    nav[i].classList.toggle('current',i===currentIndex);
+  }
+}
+
+// Timer
+function startTimer(sec){
+  remainingSeconds=sec;
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    remainingSeconds--;
+    if(remainingSeconds<=0){clearInterval(timerInterval);alert('انتهى الوقت. سيتم إنهاء الجلسة.');finishQuiz();}
+  },1000);
+}
+
+// Check answer
+document.getElementById('checkBtn').addEventListener('click',()=>{
+  const q=currentQuizQuestions[currentIndex];
+  const user=userAnswers[currentIndex];
+  const box=document.getElementById('instantExplanation');
+  if(!user){box.textContent='لم تختر أي جواب.';box.classList.remove('hidden');return;}
+  if(user===(q.Correct||q.correct)){box.textContent='✔ جواب صحيح';}
+  else{box.textContent=`✖ جواب خاطئ — الجواب الصحيح هو: ${(q.Correct||q.correct)}`;}
+  box.classList.remove('hidden');
+});
+
+// Finish (advanced below)
+document.getElementById('finishBtn').addEventListener('click',finishQuiz);
+
+// PWA install
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('installBtn').classList.remove('hidden');
+});
+document.getElementById('installBtn').addEventListener('click',()=>{
+  document.getElementById('installBtn').classList.add('hidden');
+  if(deferredPrompt)deferredPrompt.prompt();
+});
+
+// Utils
+function shuffle(arr){return arr.sort(()=>Math.random()-.5);}
+
+/* ===== Advanced: XP, Levels, Badges, Weakness, History, Dashboard ===== */
+
+let userData={xp:0,level:1,bestScore:0,totalQuestions:0,sessions:[],badges:{},weakness:{},username:'أستاذ(ة)'};
+function saveUserData(){localStorage.setItem('QCMTeacherUser',JSON.stringify(userData));}
+function loadUserData(){const s=localStorage.getItem('QCMTeacherUser');if(s)userData=JSON.parse(s);}
+loadUserData();
+
+const userNameEl=document.getElementById('userName');
+const userLevelEl=document.getElementById('userLevel');
+const xpBar=document.querySelector('.xp-progress');
+
+function xpForLevel(lvl){return Math.floor(100+(lvl-1)*70);}
+function updateSidebarUI(){
+  userNameEl.textContent='الأستاذ: '+userData.username;
+  userLevelEl.textContent='المستوى: '+userData.level;
+  xpBar.style.width=(userData.xp/xpForLevel(userData.level))*100+'%';
+  document.getElementById('bestScore').textContent=userData.bestScore+'/20';
+  document.getElementById('sessionCount').textContent=userData.sessions.length;
+  document.getElementById('totalQuestions').textContent=userData.totalQuestions;
+}
+updateSidebarUI();
+
+function addXP(amount){
+  userData.xp+=amount;
+  while(userData.xp>=xpForLevel(userData.level)){
+    userData.xp-=xpForLevel(userData.level);
+    userData.level++;
+    showLevelUp();
+  }
+  saveUserData();updateSidebarUI();
+}
+function showLevelUp(){
+  const div=document.createElement('div');
+  div.className='level-up-popup';
+  div.innerHTML=`<h2>🎉 مستوى جديد!</h2><p>لقد أصبحت الآن المستوى ${userData.level}</p>`;
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),2500);
+}
+
+// Badges
+const badgeTypes={
+  first50:{name:'50 سؤال',desc:'أنهيت 50 سؤالاً!',icon:'icons/icon-192.png'},
+  sessions10:{name:'10 جلسات',desc:'أنجزت 10 جلسات!',icon:'icons/icon-192.png'},
+  score18:{name:'متفوق',desc:'حصلت على أكثر من 18/20!',icon:'icons/icon-192.png'},
+  noMistakes:{name:'بدون أخطاء',desc:'أنهيت جلسة بدون أي خطأ!',icon:'icons/icon-192.png'}
+};
+function earnBadge(id){
+  if(userData.badges[id])return;
+  userData.badges[id]=true;saveUserData();showBadgePopup(badgeTypes[id]);
+}
+function showBadgePopup(b){
+  const d=document.createElement('div');
+  d.className='badge-popup glassy';
+  d.innerHTML=`<img src="${b.icon}" alt=""><h3>${b.name}</h3><p>${b.desc}</p>`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),3000);
+}
+function renderBadges(){
+  const box=document.getElementById('badgeContainer');
+  box.innerHTML='';
+  Object.keys(badgeTypes).forEach(id=>{
+    const b=badgeTypes[id];
+    const it=document.createElement('div');
+    it.className='badge-item glassy';
+    it.innerHTML=`<img src="${b.icon}" alt=""><h3>${b.name}</h3><p>${b.desc}</p>
+      <p style="opacity:.7">${userData.badges[id]?'✔ محققة':'✖ غير محققة'}</p>`;
+    box.appendChild(it);
+  });
+}
+
+// Weakness
+function registerWrong(q){
+  const key=`${q.Domain} - ${(q.SubDomain||q.Sub)}`;
+  if(!userData.weakness[key])userData.weakness[key]={wrong:0,total:0};
+  userData.weakness[key].wrong++;userData.weakness[key].total++;saveUserData();
+}
+function registerCorrect(q){
+  const key=`${q.Domain} - ${(q.SubDomain||q.Sub)}`;
+  if(!userData.weakness[key])userData.weakness[key]={wrong:0,total:0};
+  userData.weakness[key].total++;saveUserData();
+}
+function loadWeaknessMap(){
+  const box=document.getElementById('weaknessList');box.innerHTML='';
+  Object.keys(userData.weakness).forEach(k=>{
+    const w=userData.weakness[k];const rate=Math.round((w.wrong/w.total)*100);
+    const d=document.createElement('div');d.className='weak-item glassy';
+    d.innerHTML=`<h3>${k}</h3><p>عدد المحاولات: ${w.total}</p><p>عدد الأخطاء: ${w.wrong}</p><p>نسبة الخطأ: ${rate}%</p>`;
+    box.appendChild(d);
+  });
+}
+
+// History
+function saveSessionHistory(score,timeSpent){
+  userData.sessions.push({date:new Date().toLocaleString(),score,questions:currentQuizQuestions.length,time:timeSpent});
+  userData.totalQuestions+=currentQuizQuestions.length;saveUserData();
+}
+function loadHistory(){
+  const box=document.getElementById('historyList');box.innerHTML='';
+  userData.sessions.forEach(s=>{
+    const d=document.createElement('div');d.className='history-item glassy';
+    d.innerHTML=`<h3>${s.date}</h3><p>النقطة: ${s.score}/20</p><p>عدد الأسئلة: ${s.questions}</p><p>المدة: ${s.time} ثانية</p>`;
+    box.appendChild(d);
+  });
+}
+
+// Dashboard + AI
+function updateCorrectRate(){
+  let totalCorrectRatio=0;
+  userData.sessions.forEach(s=>{totalCorrectRatio+=s.score/20;});
+  const rate=userData.sessions.length?Math.round((totalCorrectRatio/userData.sessions.length)*100):0;
+  document.getElementById('correctRate').textContent=rate+'%';
+}
+let chartInstance=null;
+function loadDashboardChart(){
+  const ctx=document.getElementById('progressChart');
+  if(!ctx)return;
+  if(chartInstance)chartInstance.destroy();
+  const labels=userData.sessions.map(s=>s.date);
+  const data=userData.sessions.map(s=>s.score);
+  chartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'تطور النقاط',data,borderColor:'#2266ff',backgroundColor:'rgba(34,102,255,0.25)',borderWidth:3,fill:true,tension:.3}]},options:{scales:{y:{beginAtZero:true,max:20}}}});
+}
+function generateAIRecommendation(){
+  const box=document.getElementById('aiRecommendation');
+  let worstKey=null,worstRate=0;
+  Object.keys(userData.weakness).forEach(k=>{
+    const w=userData.weakness[k];const rate=w.wrong/w.total;
+    if(rate>worstRate){worstRate=rate;worstKey=k;}
+  });
+  if(!worstKey){box.textContent='أداؤك جيد عموماً. يمكنك اختيار أي مجال والبدء في جلسة متوسطة.';return;}
+  box.textContent=`نقطة ضعفك الأبرز: ${worstKey}. ننصحك بجلسة 8 أسئلة بمستوى متوسط في هذا المجال.`;
+}
+document.getElementById('startRecommendedSession').addEventListener('click',()=>{
+  alert('في النسخة الحالية، قم باختيار نفس المجال الضعيف يدوياً من شاشة الجلسة لإطلاق تدريب مخصص.');
+});
+
+// FinishQuiz override
+function finishQuiz(){
+  if(!currentQuizQuestions.length){alert('لا توجد جلسة نشطة.');return;}
+  clearInterval(timerInterval);
+  let correct=0,wrongList=[];
+  currentQuizQuestions.forEach((q,i)=>{
+    if(userAnswers[i]===(q.Correct||q.correct)){correct++;registerCorrect(q);}
+    else{wrongList.push(q);registerWrong(q);}
+  });
+  const score=Number(((correct/currentQuizQuestions.length)*20).toFixed(2));
+  if(score>userData.bestScore)userData.bestScore=score;
+  addXP(correct*6);
+  if(userData.totalQuestions+currentQuizQuestions.length>=50)earnBadge('first50');
+  if(userData.sessions.length+1>=10)earnBadge('sessions10');
+  if(score>=18)earnBadge('score18');
+  if(wrongList.length===0)earnBadge('noMistakes');
+  saveSessionHistory(score,remainingSeconds);
+  saveUserData();
+  alert(`🎉 النتيجة: ${score}/20`);
+  loadWeaknessMap();loadHistory();loadDashboardChart();updateCorrectRate();renderBadges();generateAIRecommendation();updateSidebarUI();
+}
+
+// Settings
+document.getElementById('usernameInput').value=userData.username||'';
+document.getElementById('usernameInput').addEventListener('change',e=>{
+  userData.username=e.target.value||'أستاذ(ة)';saveUserData();updateSidebarUI();
+});
+document.getElementById('resetAll').addEventListener('click',()=>{
+  if(confirm('هل تريد حذف جميع بيانات التقدم والحفظ؟')){localStorage.removeItem('QCMTeacherUser');location.reload();}
+});
+
+// Initial rendering
+renderBadges();loadWeaknessMap();loadHistory();loadDashboardChart();updateCorrectRate();generateAIRecommendation();updateSidebarUI();
+
+// Service Worker
+if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(console.error);}
+</script>
+</body>
+</html>
